@@ -26,7 +26,7 @@ def get_current_user():
     if not userID:
         return jsonify({"error": "No autorizado"}), 401
     user = User.query.get(userID)
-    return jsonify({"user": user.user, "id": userID}), 200
+    return jsonify({"user": user.user, "id": user.id}), 200
 
 @users.route("/logout")
 def logout():

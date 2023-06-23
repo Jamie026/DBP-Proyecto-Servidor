@@ -23,6 +23,14 @@ def getGroupsByUserId(userID):
         members.append(Rol.query.filter_by(group=group.id).count())
     return jsonify({"groups": groupsJson, "members": members, "admins": admins}), 200
 
+@groups.route("/checkMember/<int:groupID>/<int:userID>", methods=["GET"])
+def checkMember(groupID, userID):
+    admin = Rol.query.filter_by(user=userID, group=groupID, admin=True).first()
+    if not admin:
+        return jsonify({"error": "No tienes permisos de administrador"}), 403
+    else:
+        return jsonify({"message": "Tienes permisos de administrador"}), 200
+
 @groups.route("/createGroup", methods=["POST"])
 def create_group():
     data = request.get_json()
