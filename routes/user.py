@@ -6,7 +6,7 @@ from models.db import db
 from sqlalchemy import or_
 from utils.functions import set_cookie, remove_cookie, validate_data
 
-users = Blueprint("users")
+users = Blueprint("users", __name__)
 bcrypt = Bcrypt()
 
 @users.route("/users", methods=["GET"])
@@ -30,7 +30,7 @@ def get_current_user():
     user = User.query.get(user_id)
     if not user:
         return {"error": "El usuario no existe"}, 401
-    return {"user": user.username, "id": user.id}, 200
+    return {"username": user.username, "id": user.id}, 200
 
 @users.route("/logout")
 def logout():

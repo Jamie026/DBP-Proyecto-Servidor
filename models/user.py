@@ -1,5 +1,6 @@
 from models.db import db
 from sqlalchemy import Column, Integer, String, Date
+from sqlalchemy.orm import relationship
 
 class User(db.Model):
     __tablename__ = "user"
@@ -10,6 +11,9 @@ class User(db.Model):
     password = Column(String(100), nullable=False)
     email = Column(String(100), nullable=False, unique=True)
     birth_date = Column(Date, nullable=False)
+
+    tasks = relationship("Task", cascade="delete")
+    roles = relationship("Rol", cascade="delete")
     
     def __init__(self, name, username, password, email, birth_date):
         self.name = name
