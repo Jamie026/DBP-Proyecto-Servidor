@@ -1,24 +1,29 @@
 from models.db import db
+from sqlalchemy import Column, Integer, String, Date, ForeignKey, Boolean
+from sqlalchemy.orm import relationship
 
 class Task(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    description = db.Column(db.String(200), nullable=True)
-    date = db.Column(db.Date, nullable=False)
-    user = db.Column(db.Integer, nullable=False)
-    active = db.Column(db.Boolean, default=True, nullable=False)
+    __tablename__ = "task"
     
-    def __init__ (self, name, description, date, user):
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), nullable=False)
+    date = Column(Date, nullable=False)
+    description = Column(String(200), nullable=False)
+    user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
+    
+    user = relationship("User", backref="tasks", cascade="all, delete")
+    
+    def __init__(self, name, description, date, user):
         self.name = name
         self.description = description
         self.date = date
         self.user = user
         
-    def to_dict(self):
+    def get_data(self):
         return {
             "id": self.id,
             "name": self.name,
             "description": self.description,
             "date": self.date,
-            "user": self.user
+            "user": self.user.get_data()
         }

@@ -1,26 +1,29 @@
 from models.db import db
+from sqlalchemy import Column, Integer, String, Date
 
 class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    user = db.Column(db.String(64), nullable=False, unique=True)
-    password = db.Column(db.String(100), nullable=False)
-    email = db.Column(db.String(100), nullable=False)
-    birthDate = db.Column(db.Date, nullable=False)
+    __tablename__ = "user"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), nullable=False)
+    username = Column(String(64), nullable=False, unique=True)
+    password = Column(String(100), nullable=False)
+    email = Column(String(100), nullable=False, unique=True)
+    birth_date = Column(Date, nullable=False)
     
-    def __init__ (self, name, user, password, email, birthDate):
+    def __init__(self, name, username, password, email, birth_date):
         self.name = name
-        self.user = user
+        self.username = username
         self.password = password
         self.email = email
-        self.birthDate = birthDate
+        self.birth_date = birth_date
         
-    def to_dict(self):
+    def get_data(self):
         return {
             "id": self.id,
             "name": self.name,
-            "user": self.user,
+            "username": self.username,
             "email": self.email,
-            "birthDate": self.birthDate.strftime("%d-%m-%y"),
+            "birth_date": self.birth_date.strftime("%d-%m-%y"),
             "password": self.password
         }

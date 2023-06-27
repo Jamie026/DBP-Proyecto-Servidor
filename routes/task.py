@@ -1,56 +1,72 @@
+from flask import Blueprint, request
 from datetime import datetime
-from flask import Blueprint, jsonify, request
+from utils.functions import validateData
+from models.user import User
 from models.task import Task
+from models.group import Group
 from models.assign import Assign
 from models.rol import Rol
 from models.db import db
 
 tasks = Blueprint("tasks", __name__)
 
-@tasks.route("/tasks/<int:userID>", methods=["GET"])
-def getTasksByUserId(userID):
-    tasks = Task.query.filter_by(user=userID, active=True).all()
-    assigns, tasksJson = ([], [])
+@tasks.route("/tasks/<int:user_id>", methods=["GET"])
+def get_tasks_by_user_id(user_id):
+    tasks = Task.query.filter_by(user_id=user_id).all()
+    assigns, tasks_data = [], []
     for task in tasks:
-        assigns.append(Assign.query.filter_by(task=task.id).count())    
-        tasksJson.append(task.to_dict())    
-    return jsonify({"tasks": tasksJson, "assigns": assigns}), 200
+        assigns.append(Assign.query.filter_by(task_id=task.id).count())    
+        tasks_data.append(task.get_data())    
+    return {"tasks": tasks_data, "assigns": assigns}, 200
 
 @tasks.route("/createTask", methods=["POST"])
-def createTask():
+def create_task():
     data = request.get_json()
-    name, description, date, user =  data.get("name"), data.get("description"), data.get("date"), data.get("user")
+    if not validateData(data, ["name", "description", "date", "user"]):
+        return {"error": "Datos incorrectos"}, 403
+    name, description, date, user_id =  data.get("name"), data.get("description"), data.get("date"), data.get("user")
     date = datetime.strptime(date, "%Y-%m-%d")
-    newTask = Task(name, description, date, user)
-    db.session.add(newTask)
+    user = User.query.get(user_id)
+    if not user:
+        return {"error": "Usuario no encontrado"}, 401
+    new_task = Task(name, description, date, user)
+    db.session.add(new_task)
     db.session.commit()
-    return jsonify({"message": "Tarea creada", "id": newTask.id}), 200
+    return {"message": "Tarea creada", "id": new_task.id}, 200
 
 @tasks.route("/assignTask", methods=["POST"])
-def assignTask():
+def assign_task():
     data = request.get_json()
-    group, task, user = data.get("group"), data.get("task"), data.get("user")
-    taskExist = Task.query.filter_by(id=task, user=user).first()
-    if taskExist is None:
-        return jsonify({"error": "Tarea no disponible"}), 401
-    rol = Rol.query.filter_by(group=group, user=user).first()
-    if rol is None:
-        return jsonify({"error": "Usted no pertenece al grupo"}), 401
-    if rol.admin is False:
-        return jsonify({"error": "No tiene autorización"}), 401
-    assignExist = Assign.query.filter_by(group=group, task=task).first() is not None
-    if assignExist:
-        return jsonify({"error": "Tarea ya asignada al grupo"}), 401
-    newAssign = Assign(task, group)
-    db.session.add(newAssign)
-    db.session.commit()
-    return jsonify({"message": "Tarea asignada"}), 200
-
-@tasks.route("/deleteTask/<int:taskID>", methods=["DELETE"])
-def deleteTask(taskID):
-    task = Task.query.filter_by(id=taskID).first()
+    if not validateData(data, ["task", "user", "group"]):
+        return {"error": "Datos incorrectos"}, 403
+    group_id, task_id, user_id = data.get("group"), data.get("task"), data.get("user")
+    group = Group.query.get(group_id)
+    task = Task.query.get(task_id)
+    rol = Rol.query.filter_by(group_id=group_id, user_id=user_id).first()
+    if group is None:
+        return {"error": "Grupo no encontrado"}, 401
     if task is None:
-        return jsonify({"error": "Tarea no disponible"}), 401
-    task.active = False
+        return {"error": "Tarea no disponible"}, 401
+    if rol is None:
+        return {"error": "Usted no pertenece al grupo"}, 401
+    if not rol.admin:
+        return {"error": "No tiene autorización"}, 401
+    assign = Assign.query.filter_by(group_id=group_id, task_id=task_id).first() 
+    if assign is not None:
+        return {"error": "Tarea ya asignada al grupo"}, 401
+    new_assign = Assign(task, group)
+    db.session.add(new_assign)
     db.session.commit()
-    return jsonify({"message": "Tarea eliminada"}), 200
+    return {"message": "Tarea asignada"}, 200
+
+@tasks.route("/deleteTask/<int:task_id>", methods=["DELETE"])
+def delete_task(task_id):
+    task = Task.query.filter_by(id=task_id).first()
+    if task is None:
+        return {"error": "Tarea no disponible"}, 401
+    assigns = Assign.query.filter_by(task_id=task.id).count()
+    if assigns > 0:
+        return {"error": "La tarea tiene asignaciones"}, 401
+    db.session.delete(task)
+    db.session.commit()
+    return {"message": "Tarea eliminada"}, 200
