@@ -12,6 +12,6 @@ def remove_cookie(key):
 
 def validate_data(data, required_fields):
     for field in required_fields:
-        if field not in data or not data[field]:
+        if field not in data or data[field] is None:
             return False
     return True

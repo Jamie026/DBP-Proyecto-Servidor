@@ -28,7 +28,7 @@ def get_groups_by_user_id(user_id):
 @groups.route("/checkMember/<int:group_id>/<int:user_id>", methods=["GET"])
 def check_member(group_id, user_id):
     admin = Rol.query.filter_by(user=user_id, group=group_id, admin=True).first()
-    if not admin:
+    if admin is None:
         return {"error": "No tienes permisos de administrador"}, 403
     return {"message": "Tienes permisos de administrador"}, 200
 
@@ -58,12 +58,11 @@ def create_group():
 @groups.route("/joinGroup", methods=["POST"])
 def join_group():
     data = request.get_json()
-    if not validate_data(data, ["group", "password", "user"]):
+    if not validate_data(data, ["group", "code", "user"]):
         return {"error": "Datos incorrectos"}, 403
-    group_id, password, user_id = data.get("group"), data.get("password"), data.get("user")
+    group_id, password, user_id = data.get("group"), data.get("code"), data.get("user")
     group = Group.query.get(group_id)
-    user = User.query.get(user_id)
-    if not group:
+    if group is None:
         return {"error": "El grupo no existe"}, 401
     if not group.password == password:
         return {"error": "Contraseña incorrecta"}, 401
@@ -73,6 +72,19 @@ def join_group():
         return {"message": "Unido al grupo", "id": group.id, "name": group.name, "members": members}, 200
     return {"error": "Ya pertenece al grupo"}, 403
 
+@groups.route("/updateAdminMember", methods=["PUT"])
+def update_admin_member():
+    data = request.get_json()
+    if not validate_data(data, ["group", "user", "admin"]):
+        return {"error": "Datos incorrectos"}, 403
+    group_id, user_id, admin = data.get("group"), data.get("user"), data.get("admin")
+    rol = Rol.query.filter_by(user=user_id, group=group_id).first()
+    if rol is None:
+        return {"error": "Error al encontrar al miembro"}, 401
+    rol.admin = admin
+    db.session.commit()
+    return {"message": "Privilegios actualizados"}, 200
+
 @groups.route("/deleteMember/<int:group_id>/<int:user_id>", methods=["DELETE"])
 def delete_member(group_id, user_id):
     members = Rol.query.filter_by(group=group_id).all()
@@ -81,10 +93,10 @@ def delete_member(group_id, user_id):
     else:
         admins = [member for member in members if member.admin]        
         if len(admins) == 1 and admins[0].user == user_id:
-            return {"error": "Usted es el único administrador del grupo"}, 403
-        db.session.delete(Rol.query.filter_by(group=group_id, user=user_id))
+            return {"error": "Debe haber al menos un administrador"}, 403
+        db.session.delete(Rol.query.filter_by(group=group_id, user=user_id).first())
     db.session.commit()
-    return {"message": "Salida del grupo exitosa"}, 200
+    return {"message": "Eliminación exitosa"}, 200
 
 def create_member(user_id, group_id, admin):
     member = Rol.query.filter_by(user=user_id, group=group_id).first()

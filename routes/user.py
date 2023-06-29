@@ -18,19 +18,20 @@ def get_users():
 @users.route("/users/<int:user_id>", methods=["GET"])
 def get_user_by_user_id(user_id):
     user = User.query.get(user_id)
-    if not user:
+    if user is None:
         return {"error": "El usuario no existe"}, 401
     return user.get_data(), 200
 
 @users.route("/@me")
 def get_current_user():
-    user_id = request.cookies.get("user_id")
-    if not user_id:
+    parsed_id = request.cookies.get("code")
+    if not parsed_id:
         return {"error": "No autorizado"}, 401
-    user = User.query.get(user_id)
-    if not user:
+    users = User.query.all()
+    user_data = [user for user in users if bcrypt.check_password_hash(parsed_id, str(user.id))]
+    if not user_data:
         return {"error": "El usuario no existe"}, 401
-    return {"username": user.username, "id": user.id}, 200
+    return {"username": user_data[0].username, "id": user_data[0].id}, 200
 
 @users.route("/logout")
 def logout():
@@ -43,11 +44,12 @@ def login():
         return {"error": "Datos incorrectos"}, 403
     username, password = data.get("username"), data.get("password")
     user = User.query.filter_by(username=username).first()
-    if not user:
+    if user is None:
         return {"error": "Usuario inválido"}, 401
     if not bcrypt.check_password_hash(user.password, password):
         return {"error": "Contraseña inválida"}, 401
-    return set_cookie("user_id", user.id), 200
+    parsed_id = bcrypt.generate_password_hash(str(user.id)).decode("utf-8")
+    return set_cookie("code", parsed_id), 200
 
 @users.route("/signup", methods=["POST"])
 def signup():
@@ -66,4 +68,4 @@ def signup():
     new_user = User(name, username, password, email, birth_date)
     db.session.add(new_user)
     db.session.commit()
-    return set_cookie("user_id", new_user.id), 200
+    return set_cookie("code", new_user.id), 200

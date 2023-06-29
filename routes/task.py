@@ -27,7 +27,7 @@ def create_task():
     name, description, date, user_id =  data.get("name"), data.get("description"), data.get("date"), data.get("user")
     date = datetime.strptime(date, "%Y-%m-%d")
     user = User.query.get(user_id)
-    if not user:
+    if user is None:
         return {"error": "Usuario no encontrado"}, 401
     new_task = Task(name, description, date, user_id)
     db.session.add(new_task)
