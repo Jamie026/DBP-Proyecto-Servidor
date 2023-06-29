@@ -35,7 +35,7 @@ def get_current_user():
 
 @users.route("/logout")
 def logout():
-    return remove_cookie("user_id"), 200
+    return remove_cookie("code"), 200
 
 @users.route("/login", methods=["POST"])
 def login():
