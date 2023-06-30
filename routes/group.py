@@ -38,7 +38,7 @@ def get_members(group_id):
     members, admins = [], []
     for rol in roles:
         user = User.query.get(rol.user)
-        admins.append(rol.admin)
+        admins.append({"admin": rol.admin, "user": rol.user})
         members.append(user.get_data())
     return {"members": members, "admins": admins}, 200
 
@@ -71,6 +71,20 @@ def join_group():
         members = Rol.query.filter_by(group=group_id).count()
         return {"message": "Unido al grupo", "id": group.id, "name": group.name, "members": members}, 200
     return {"error": "Ya pertenece al grupo"}, 403
+
+@groups.route("/updateGroupData", methods=["PUT"])
+def update_group_data():
+    data = request.get_json()
+    if not validate_data(data, ["group", "name", "password"]):
+        return {"error": "Datos incorrectos"}, 403
+    group_id, name, password = data.get("group"), data.get("name"), data.get("password")
+    group = Group.query.get(group_id)
+    if group is None:
+        return {"error": "El grupo no existe"}, 401
+    group.name = name
+    group.password = password
+    db.session.commit()
+    return {"message": "Datos actualizados"}, 200
 
 @groups.route("/updateAdminMember", methods=["PUT"])
 def update_admin_member():
