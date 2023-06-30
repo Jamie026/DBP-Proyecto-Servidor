@@ -68,4 +68,5 @@ def signup():
     new_user = User(name, username, password, email, birth_date)
     db.session.add(new_user)
     db.session.commit()
-    return set_cookie("code", new_user.id), 200
+    parsed_id = bcrypt.generate_password_hash(str(new_user.id)).decode("utf-8")
+    return set_cookie("code", parsed_id), 200

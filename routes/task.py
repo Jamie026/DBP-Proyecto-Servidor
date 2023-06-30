@@ -1,5 +1,4 @@
 from flask import Blueprint, request, jsonify
-from datetime import datetime
 from utils.functions import validate_data
 from models.user import User
 from models.task import Task
@@ -22,14 +21,13 @@ def get_tasks_by_user_id(user_id):
 @tasks.route("/createTask", methods=["POST"])
 def create_task():
     data = request.get_json()
-    if not validate_data(data, ["name", "description", "date", "user"]):
+    if not validate_data(data, ["name", "description", "user"]):
         return jsonify(result={"error": "Datos incorrectos"}), 403
-    name, description, date, user_id =  data.get("name"), data.get("description"), data.get("date"), data.get("user")
-    date = datetime.strptime(date, "%Y-%m-%d")
+    name, description, user_id =  data.get("name"), data.get("description"), data.get("user")
     user = User.query.get(user_id)
     if user is None:
         return jsonify(result={"error": "Usuario no encontrado"}), 401
-    new_task = Task(name, description, date, user_id)
+    new_task = Task(name, description, user_id)
     db.session.add(new_task)
     db.session.commit()
     return jsonify(result={"message": "Tarea creada", "id": new_task.id}), 200
@@ -58,6 +56,16 @@ def assign_task():
     db.session.add(new_assign)
     db.session.commit()
     return jsonify(result={"message": "Tarea asignada"}), 200
+
+@tasks.route("/assigns/<int:group_id>", methods=["GET"])
+def get_assigns_by_group(group_id):
+    tasks = []
+    assigns = Assign.query.filter_by(group=group_id).all()
+    for assign in assigns: 
+        task = Task.query.get(assign.task)
+        tasks.append(task.get_data())
+    assigns_data = [assign.get_data() for assign in assigns]
+    return jsonify(result={"assigns": assigns_data, "tasks": tasks}), 200
 
 @tasks.route("/deleteTask/<int:task_id>", methods=["DELETE"])
 def delete_task(task_id):

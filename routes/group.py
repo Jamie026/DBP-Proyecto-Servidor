@@ -1,6 +1,5 @@
 from flask import Blueprint, request, jsonify
 from utils.functions import validate_data
-from datetime import datetime
 from models.group import Group
 from models.rol import Rol
 from models.user import User
@@ -45,11 +44,10 @@ def get_members(group_id):
 @groups.route("/createGroup", methods=["POST"])
 def create_group():
     data = request.get_json()
-    if not validate_data(data, ["name", "password", "date", "user"]):
+    if not validate_data(data, ["name", "password", "user"]):
         return jsonify(result={"error": "Datos incorrectos"}), 403
-    name, password, date, user_id = data.get("name"), data.get("password"), data.get("date"), data.get("user")
-    date = datetime.strptime(date, "%Y-%m-%d").date()
-    new_group = Group(name, password, date)
+    name, password, user_id = data.get("name"), data.get("password"), data.get("user")
+    new_group = Group(name, password)
     db.session.add(new_group)
     db.session.commit()
     create_member(user_id, new_group.id, True)
