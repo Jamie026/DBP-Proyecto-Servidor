@@ -1,12 +1,12 @@
 from flask import make_response
 
 def set_cookie(key, value):
-    response = make_response("Cookie establecida")
+    response = make_response("success")
     response.set_cookie(key, str(value), secure=True, samesite="None")
     return response
 
 def remove_cookie(key):
-    response = make_response("Cookie eliminada")
+    response = make_response("success")
     response.set_cookie(key, "", secure=True, samesite="None", expires=0)
     return response
 
