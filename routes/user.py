@@ -25,13 +25,14 @@ def get_user_by_user_id(user_id):
 @users.route("/@me")
 def get_current_user():
     parsed_id = request.cookies.get("code")
+    print(parsed_id)
     if not parsed_id:
         return {"error": "No autorizado"}, 401
     users = User.query.all()
-    user_data = [user for user in users if bcrypt.check_password_hash(parsed_id, str(user.id))]
-    if not user_data:
+    user_match = [user for user in users if bcrypt.check_password_hash(parsed_id, str(user.id))]
+    if len(user_match) == 0:
         return jsonify(result={"error": "El usuario no existe"}), 401
-    return jsonify(result={"username": user_data[0].username, "id": user_data[0].id}), 200
+    return jsonify(result={"user": user_match[0].get_data()}), 200
 
 @users.route("/logout")
 def logout():
